@@ -51,7 +51,7 @@ curl --location 'http://localhost:3333/api/v1/payments' \
 // 201 Created
 {
   "paymentId": "b018b23b-9931-4438-b55f-782edb05b4c2",
-  "status": "pending"
+  "status": "pending",
 }
 ```
 
@@ -70,17 +70,17 @@ curl --location 'http://localhost:3333/api/v1/payments/b018b23b-9931-4438-b55f-7
 // 200 OK
 {
   "paymentId": "b018b23b-9931-4438-b55f-782edb05b4c2",
-  "status": "processed"
+  "status": "processed",
 }
 ```
 
 ### Respostas de erro
 
-| Situação                                   | Status | Corpo                                                        |
-| ------------------------------------------ | ------ | ------------------------------------------------------------ |
-| Payload inválido                           | `422`  | erros de validação (VineJS)                                  |
-| Pagamento inexistente                      | `404`  | `{ "code": "E_PAYMENT_NOT_FOUND", "message": "..." }`        |
-| Provedor externo indisponível / com erro   | `502`  | `{ "code": "E_PROVIDER_UNAVAILABLE", "message": "..." }`     |
+| Situação                                 | Status | Corpo                                                    |
+| ---------------------------------------- | ------ | -------------------------------------------------------- |
+| Payload inválido                         | `422`  | erros de validação (VineJS)                              |
+| Pagamento inexistente                    | `404`  | `{ "code": "E_PAYMENT_NOT_FOUND", "message": "..." }`    |
+| Provedor externo indisponível / com erro | `502`  | `{ "code": "E_PROVIDER_UNAVAILABLE", "message": "..." }` |
 
 ---
 
@@ -89,11 +89,11 @@ curl --location 'http://localhost:3333/api/v1/payments/b018b23b-9931-4438-b55f-7
 A solução combina **três** padrões pedidos no desafio, que atuam em eixos diferentes e se
 complementam:
 
-| Padrão | O que separa | Onde aparece |
-| --- | --- | --- |
+| Padrão                           | O que separa                                                 | Onde aparece                                                       |
+| -------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
 | **Ports & Adapters (Hexagonal)** | o núcleo de domínio do mundo externo (HTTP, banco, provedor) | `domain/ports/*` + adapters em `infrastructure/*` e `interfaces/*` |
-| **CQRS** | operações de escrita (commands) das de leitura (queries) | `application/commands/*` vs `application/queries/*` + buses |
-| **SOLID** | princípios que guiam ambos | DIP via ports; SRP nos mappers; OCP na tradução de métodos |
+| **CQRS**                         | operações de escrita (commands) das de leitura (queries)     | `application/commands/*` vs `application/queries/*` + buses        |
+| **SOLID**                        | princípios que guiam ambos                                   | DIP via ports; SRP nos mappers; OCP na tradução de métodos         |
 
 ### Camadas (de dentro para fora)
 
@@ -116,13 +116,13 @@ dependem de `application`/`domain`, nunca o contrário.
 O nosso contrato e o do provedor **não são iguais**. Toda a tradução vive em um único lugar
 (`ProviderMapper`), de modo que o domínio jamais conhece o vocabulário do provedor:
 
-| Nosso contrato        | Provedor externo                         |
-| --------------------- | ---------------------------------------- |
-| `amount` + `currency` | `money: { amount, currency }` (aninhado) |
+| Nosso contrato        | Provedor externo                             |
+| --------------------- | -------------------------------------------- |
+| `amount` + `currency` | `money: { amount, currency }` (aninhado)     |
 | `method: "PAYPAL"`    | `payment_method: "pay-pal"` (mapa explícito) |
-| `product_id`          | `product_id`                             |
-| `paymentId` (nosso)   | `tx_id` (resposta do provedor)           |
-| `status` do provedor  | mapeado para `pending`/`processed`/`failed` |
+| `product_id`          | `product_id`                                 |
+| `paymentId` (nosso)   | `tx_id` (resposta do provedor)               |
+| `status` do provedor  | mapeado para `pending`/`processed`/`failed`  |
 
 Endpoints do provedor: `POST /init-payment` e `GET /list-payment/:txId`.
 
@@ -186,11 +186,11 @@ Em seguida, use os `curl` da seção [Endpoints](#endpoints).
 
 A estratégia segue a pirâmide de testes:
 
-| Suíte         | O que cobre                                                        | Dependências            |
-| ------------- | ------------------------------------------------------------------ | ----------------------- |
-| `unit`        | domínio, value objects, mappers, handlers (com _test doubles_)     | nenhuma (sem Docker)    |
-| `integration` | `LucidPaymentRepository` (Postgres real) e `HttpPaymentProvider`   | Postgres (Testcontainers) + nock |
-| `functional`  | API ponta a ponta (rota → controller → bus → handler → adapters)   | Postgres + nock + servidor HTTP |
+| Suíte         | O que cobre                                                      | Dependências                     |
+| ------------- | ---------------------------------------------------------------- | -------------------------------- |
+| `unit`        | domínio, value objects, mappers, handlers (com _test doubles_)   | nenhuma (sem Docker)             |
+| `integration` | `LucidPaymentRepository` (Postgres real) e `HttpPaymentProvider` | Postgres (Testcontainers) + nock |
+| `functional`  | API ponta a ponta (rota → controller → bus → handler → adapters) | Postgres + nock + servidor HTTP  |
 
 ```bash
 npm run test:unit          # rápido, sem Docker
@@ -247,14 +247,14 @@ docker-compose.yml
 
 ## Variáveis de ambiente
 
-| Variável                  | Descrição                                  | Exemplo                      |
-| ------------------------- | ------------------------------------------ | ---------------------------- |
-| `PORT` / `HOST`           | porta/host do servidor                     | `3333` / `localhost`         |
-| `APP_KEY`                 | chave da aplicação (gerada pelo Adonis)    | —                            |
-| `DB_HOST` / `DB_PORT`     | conexão Postgres                           | `127.0.0.1` / `5432`         |
-| `DB_USER` / `DB_PASSWORD` | credenciais Postgres                       | `root` / `root`              |
-| `DB_DATABASE`             | base de dados                              | `app`                        |
-| `PAYMENT_PROVIDER_URL`    | base URL do provedor externo               | `http://external.provider.com` |
-| `PAYMENT_PROVIDER_TIMEOUT`| timeout (ms) das chamadas ao provedor      | `5000`                       |
+| Variável                   | Descrição                               | Exemplo                        |
+| -------------------------- | --------------------------------------- | ------------------------------ |
+| `PORT` / `HOST`            | porta/host do servidor                  | `3333` / `localhost`           |
+| `APP_KEY`                  | chave da aplicação (gerada pelo Adonis) | —                              |
+| `DB_HOST` / `DB_PORT`      | conexão Postgres                        | `127.0.0.1` / `5432`           |
+| `DB_USER` / `DB_PASSWORD`  | credenciais Postgres                    | `root` / `root`                |
+| `DB_DATABASE`              | base de dados                           | `app`                          |
+| `PAYMENT_PROVIDER_URL`     | base URL do provedor externo            | `http://external.provider.com` |
+| `PAYMENT_PROVIDER_TIMEOUT` | timeout (ms) das chamadas ao provedor   | `5000`                         |
 
 Veja `.env.example` para o conjunto completo.

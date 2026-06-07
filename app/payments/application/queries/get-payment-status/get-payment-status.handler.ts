@@ -13,9 +13,7 @@ import { GetPaymentStatusQuery } from './get-payment-status.query.js'
  * persisted before returning. Terminal statuses are returned as-is (no extra
  * provider call).
  */
-export class GetPaymentStatusHandler
-  implements QueryHandler<GetPaymentStatusQuery, PaymentResult>
-{
+export class GetPaymentStatusHandler implements QueryHandler<GetPaymentStatusQuery, PaymentResult> {
   constructor(
     private readonly payments: PaymentRepository,
     private readonly provider: PaymentProvider

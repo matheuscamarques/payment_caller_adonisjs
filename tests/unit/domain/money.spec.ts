@@ -18,7 +18,10 @@ test.group('Money', () => {
   })
 
   test('rejects a negative amount', ({ assert }) => {
-    assert.throws(() => Money.create(-1, 'BRL'), 'Amount must be a positive integer in minor units, received: -1')
+    assert.throws(
+      () => Money.create(-1, 'BRL'),
+      'Amount must be a positive integer in minor units, received: -1'
+    )
   })
 
   test('rejects a non-integer amount', ({ assert }) => {

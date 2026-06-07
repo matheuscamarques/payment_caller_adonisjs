@@ -10,7 +10,10 @@ import { PAYMENT_METHODS } from '#payments/domain/value-objects/payment-method'
 export const initiatePaymentValidator = vine.compile(
   vine.object({
     amount: vine.number().positive().withoutDecimals(),
-    currency: vine.string().trim().regex(/^[A-Za-z]{3}$/),
+    currency: vine
+      .string()
+      .trim()
+      .regex(/^[A-Za-z]{3}$/),
     method: vine.enum(PAYMENT_METHODS),
     product_id: vine.string().trim().uuid(),
   })

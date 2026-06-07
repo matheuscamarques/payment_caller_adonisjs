@@ -60,6 +60,9 @@ test.group('PaymentMapper', () => {
 
     const roundTripped = PaymentMapper.toDomain(PaymentMapper.toPersistence(original))
 
-    assert.deepEqual(PaymentMapper.toPersistence(roundTripped), PaymentMapper.toPersistence(original))
+    assert.deepEqual(
+      PaymentMapper.toPersistence(roundTripped),
+      PaymentMapper.toPersistence(original)
+    )
   })
 })

@@ -17,7 +17,8 @@ export interface QueryHandler<TQuery extends Query, TResult> {
 export type QueryConstructor<TQuery extends Query = Query> = new (...args: any[]) => TQuery
 
 /** Extracts the result type a query resolves to. */
-export type QueryResult<TQuery extends Query> = TQuery extends Query<infer TResult> ? TResult : never
+export type QueryResult<TQuery extends Query> =
+  TQuery extends Query<infer TResult> ? TResult : never
 
 /**
  * Read-side dispatcher. Declared as an abstract class so it can be used as an

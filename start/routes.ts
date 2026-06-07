@@ -9,8 +9,7 @@
 
 import router from '@adonisjs/core/services/router'
 
-const PaymentsController = () =>
-  import('#payments/interfaces/http/controllers/payments_controller')
+const PaymentsController = () => import('#payments/interfaces/http/controllers/payments_controller')
 
 router.get('/', async () => ({ status: 'ok' }))
 

@@ -18,9 +18,10 @@ import { InitiatePaymentCommand } from './initiate-payment.command.js'
  *      - failure → mark the payment `failed`, persist, and surface a
  *        ProviderUnavailableError (translated to HTTP 502 at the edge).
  */
-export class InitiatePaymentHandler
-  implements CommandHandler<InitiatePaymentCommand, PaymentResult>
-{
+export class InitiatePaymentHandler implements CommandHandler<
+  InitiatePaymentCommand,
+  PaymentResult
+> {
   constructor(
     private readonly payments: PaymentRepository,
     private readonly provider: PaymentProvider
