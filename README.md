@@ -94,7 +94,7 @@ complementam:
 | **Ports & Adapters (Hexagonal)** | o núcleo de domínio do mundo externo (HTTP, banco, provedor) | `domain/ports/*` + adapters em `infrastructure/*` e `interfaces/*` |
 | **CQRS**                         | operações de escrita (commands) das de leitura (queries)     | `application/commands/*` vs `application/queries/*` + buses        |
 | **SOLID**                        | princípios que guiam ambos                                   | DIP via ports; SRP nos mappers; OCP na tradução de métodos         |
-| **EDA (Event-Driven)**           | notificação assíncrona de status para o cliente (Webhook)     | `domain/ports/payment-event-bus.ts` + adapters no Kafka            |
+| **EDA (Event-Driven)**           | notificação assíncrona de status para o cliente (Webhook)    | `domain/ports/payment-event-bus.ts` + adapters no Kafka            |
 
 ### Camadas (de dentro para fora)
 
@@ -253,17 +253,17 @@ docker-compose.yml
 
 ## Variáveis de ambiente
 
-| Variável                   | Descrição                               | Exemplo                        |
-| -------------------------- | --------------------------------------- | ------------------------------ |
-| `PORT` / `HOST`            | porta/host do servidor                  | `3333` / `localhost`           |
-| `APP_KEY`                  | chave da aplicação (gerada pelo Adonis) | —                              |
-| `DB_HOST` / `DB_PORT`      | conexão Postgres                        | `127.0.0.1` / `5432`           |
-| `DB_USER` / `DB_PASSWORD`  | credenciais Postgres                    | `root` / `root`                |
-| `DB_DATABASE`              | base de dados                           | `app`                          |
-| `PAYMENT_PROVIDER_URL`     | base URL do provedor externo            | `http://external.provider.com` |
-| `PAYMENT_PROVIDER_TIMEOUT` | timeout (ms) das chamadas ao provedor   | `5000`                         |
-| `PAYMENT_PROVIDER_RETRIES` | número máximo de retentativas no gateway| `3`                            |
-| `KAFKA_BOOTSTRAP_SERVERS`   | servidores do cluster Kafka             | `localhost:9092`               |
-| `KAFKA_TOPIC`               | tópico para eventos de pagamento        | `payment-status-changed`       |
+| Variável                   | Descrição                                | Exemplo                        |
+| -------------------------- | ---------------------------------------- | ------------------------------ |
+| `PORT` / `HOST`            | porta/host do servidor                   | `3333` / `localhost`           |
+| `APP_KEY`                  | chave da aplicação (gerada pelo Adonis)  | —                              |
+| `DB_HOST` / `DB_PORT`      | conexão Postgres                         | `127.0.0.1` / `5432`           |
+| `DB_USER` / `DB_PASSWORD`  | credenciais Postgres                     | `root` / `root`                |
+| `DB_DATABASE`              | base de dados                            | `app`                          |
+| `PAYMENT_PROVIDER_URL`     | base URL do provedor externo             | `http://external.provider.com` |
+| `PAYMENT_PROVIDER_TIMEOUT` | timeout (ms) das chamadas ao provedor    | `5000`                         |
+| `PAYMENT_PROVIDER_RETRIES` | número máximo de retentativas no gateway | `3`                            |
+| `KAFKA_BOOTSTRAP_SERVERS`  | servidores do cluster Kafka              | `localhost:9092`               |
+| `KAFKA_TOPIC`              | tópico para eventos de pagamento         | `payment-status-changed`       |
 
 Veja `.env.example` para o conjunto completo.
