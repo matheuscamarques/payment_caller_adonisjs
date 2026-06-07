@@ -94,16 +94,18 @@ complementam:
 | **Ports & Adapters (Hexagonal)** | o núcleo de domínio do mundo externo (HTTP, banco, provedor) | `domain/ports/*` + adapters em `infrastructure/*` e `interfaces/*` |
 | **CQRS**                         | operações de escrita (commands) das de leitura (queries)     | `application/commands/*` vs `application/queries/*` + buses        |
 | **SOLID**                        | princípios que guiam ambos                                   | DIP via ports; SRP nos mappers; OCP na tradução de métodos         |
+| **EDA (Event-Driven)**           | notificação assíncrona de status para o cliente (Webhook)     | `domain/ports/payment-event-bus.ts` + adapters no Kafka            |
 
 ### Camadas (de dentro para fora)
 
 ```
 domain/         → entidade Payment, value objects (Money, PaymentMethod, PaymentStatus),
-                  PORTS (PaymentRepository, PaymentProvider) e erros. Zero framework.
+                  PORTS (PaymentRepository, PaymentProvider, PaymentEventBus) e erros. Zero framework.
 application/    → casos de uso (CQRS): InitiatePayment (command) e GetPaymentStatus (query),
-                  com um command/query bus fino. Depende só dos ports.
-infrastructure/ → ADAPTERS de saída: LucidPaymentRepository (Postgres) e HttpPaymentProvider
-                  (axios) + a camada anticorrupção (ProviderMapper).
+                  com um command/query bus fino e coalescimento SingleFlight. Depende só dos ports.
+infrastructure/ → ADAPTERS de saída: LucidPaymentRepository (Postgres), HttpPaymentProvider
+                  (axios), KafkaPaymentEventBus (Kafka) + a camada anticorrupção (ProviderMapper)
+                  e o WebhookConsumer para disparos assíncronos.
 interfaces/     → ADAPTER de entrada: controller HTTP + validator (VineJS).
 providers/payments_provider.ts → COMPOSITION ROOT: liga ports↔adapters no container IoC.
 ```
@@ -146,6 +148,9 @@ Endpoints do provedor: `POST /init-payment` e `GET /list-payment/:txId`.
   (passa pelo módulo `http` do Node), evitando a instabilidade de mockar `fetch`/undici.
 - **PostgreSQL + Testcontainers.** Os testes de integração sobem um Postgres real e efêmero
   via Testcontainers — mais fiel que um SQLite em memória, conforme as dicas do desafio.
+- **Controle de concorrência com Single Flight.** Múltiplas consultas de status concorrentes ao mesmo pagamento pendente são coalescidas em uma única chamada de rede e banco de dados usando coalescimento em memória no nível de aplicação, evitando bloqueio desnecessário de conexões no banco de dados.
+- **Resiliência e tolerância a falhas (Decorator).** O `PaymentProvider` concreto é envolvido por um decorador (`ResilientPaymentProvider`) que aplica tentativas com backoff exponencial e disjuntor (Circuit Breaker) para evitar chamadas excessivas em momentos de indisponibilidade do gateway externo.
+- **Envio assíncrono de Webhooks via Kafka.** Mudanças de estado disparam eventos em um barramento de mensageria. O `WebhookConsumer` roda em segundo plano, consome os eventos e envia POST HTTPs para a URL configurada pelo cliente com tolerância a falhas (retries e backoff exponencial).
 - **`amount` em unidade menor (inteiro).** Dinheiro nunca é float; evita erros de
   arredondamento.
 - **Erros de domínio agnósticos ao transporte.** O domínio lança `DomainError`s; o
@@ -165,7 +170,7 @@ npm install
 cp .env.example .env
 node ace generate:key      # gera o APP_KEY (se necessário)
 
-# 3. Banco de dados (PostgreSQL via docker-compose)
+# 3. Banco de dados e Kafka (PostgreSQL + Kafka via docker-compose)
 docker compose up -d
 
 # 4. Migrations
@@ -221,22 +226,23 @@ app/
     domain/                         # núcleo (sem framework)
       entities/payment.ts
       value-objects/{money,payment-method,payment-status}.ts
-      ports/{payment-repository,payment-provider}.ts
+      ports/{payment-repository,payment-provider,payment-event-bus}.ts
       errors/*.ts
     application/                    # casos de uso (CQRS)
-      bus/{command-bus,query-bus}.ts
+      bus/{command-bus,query-bus,single-flight}.ts
       commands/initiate-payment/*
       queries/get-payment-status/*
       dto/payment-result.ts
     infrastructure/                 # adapters de saída
       persistence/{models,mappers,lucid-payment.repository.ts}
-      provider/{http-payment-provider,provider.mapper,provider.types}.ts
+      provider/{http-payment-provider,provider.mapper,provider.types,resilient-payment-provider}.ts
+      messaging/{kafka-payment-event-bus,in-memory-payment-event-bus,webhook-consumer}.ts
     interfaces/http/                # adapter de entrada
       controllers/payments_controller.ts
       validators/initiate-payment.validator.ts
   exceptions/handler.ts             # domínio → HTTP (404/422/502)
 providers/payments_provider.ts      # composition root (IoC)
-config/{database,provider}.ts
+config/{database,provider,kafka}.ts
 database/migrations/*_create_payments_table.ts
 start/{routes,env,kernel}.ts
 tests/{unit,integration,functional,helpers}
@@ -256,5 +262,8 @@ docker-compose.yml
 | `DB_DATABASE`              | base de dados                           | `app`                          |
 | `PAYMENT_PROVIDER_URL`     | base URL do provedor externo            | `http://external.provider.com` |
 | `PAYMENT_PROVIDER_TIMEOUT` | timeout (ms) das chamadas ao provedor   | `5000`                         |
+| `PAYMENT_PROVIDER_RETRIES` | número máximo de retentativas no gateway| `3`                            |
+| `KAFKA_BOOTSTRAP_SERVERS`   | servidores do cluster Kafka             | `localhost:9092`               |
+| `KAFKA_TOPIC`               | tópico para eventos de pagamento        | `payment-status-changed`       |
 
 Veja `.env.example` para o conjunto completo.
