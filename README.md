@@ -89,12 +89,13 @@ curl --location 'http://localhost:3333/api/v1/payments/b018b23b-9931-4438-b55f-7
 A solução combina **três** padrões pedidos no desafio, que atuam em eixos diferentes e se
 complementam:
 
-| Padrão                           | O que separa                                                 | Onde aparece                                                       |
-| -------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ |
-| **Ports & Adapters (Hexagonal)** | o núcleo de domínio do mundo externo (HTTP, banco, provedor) | `domain/ports/*` + adapters em `infrastructure/*` e `interfaces/*` |
-| **CQRS**                         | operações de escrita (commands) das de leitura (queries)     | `application/commands/*` vs `application/queries/*` + buses        |
-| **SOLID**                        | princípios que guiam ambos                                   | DIP via ports; SRP nos mappers; OCP na tradução de métodos         |
-| **EDA (Event-Driven)**           | notificação assíncrona de status para o cliente (Webhook)    | `domain/ports/payment-event-bus.ts` + adapters no Kafka            |
+| Padrão                           | O que separa                                                    | Onde aparece                                                       |
+| -------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Ports & Adapters (Hexagonal)** | o núcleo de domínio do mundo externo (HTTP, banco, provedor)    | `domain/ports/*` + adapters em `infrastructure/*` e `interfaces/*` |
+| **CQRS**                         | operações de escrita (commands) das de leitura (queries)        | `application/commands/*` vs `application/queries/*` + buses        |
+| **SOLID**                        | princípios que guiam ambos                                      | DIP via ports; SRP nos mappers; OCP na tradução de métodos         |
+| **EDA (Event-Driven)**           | notificação assíncrona de status para o cliente (Webhook)       | `domain/ports/payment-event-bus.ts` + adapters no Kafka            |
+| **Observability (OTel)**         | rastreabilidade distribuída de requests HTTP e queries Postgres | `app/payments/infrastructure/telemetry/otel.ts`                    |
 
 ### Camadas (de dentro para fora)
 
@@ -151,6 +152,7 @@ Endpoints do provedor: `POST /init-payment` e `GET /list-payment/:txId`.
 - **Controle de concorrência com Single Flight.** Múltiplas consultas de status concorrentes ao mesmo pagamento pendente são coalescidas em uma única chamada de rede e banco de dados usando coalescimento em memória no nível de aplicação, evitando bloqueio desnecessário de conexões no banco de dados.
 - **Resiliência e tolerância a falhas (Decorator).** O `PaymentProvider` concreto é envolvido por um decorador (`ResilientPaymentProvider`) que aplica tentativas com backoff exponencial e disjuntor (Circuit Breaker) para evitar chamadas excessivas em momentos de indisponibilidade do gateway externo.
 - **Envio assíncrono de Webhooks via Kafka.** Mudanças de estado disparam eventos em um barramento de mensageria. O `WebhookConsumer` roda em segundo plano, consome os eventos e envia POST HTTPs para a URL configurada pelo cliente com tolerância a falhas (retries e backoff exponencial).
+- **Rastreabilidade Segura com OpenTelemetry.** Integração opcional controlada por `OTEL_ENABLED`. Os traces auto-instrumentam chamadas HTTP e queries Postgres (somente quando iniciadas a partir de um request HTTP, via `requireParentSpan: true`). Para segurança, cabeçalhos sensíveis (como `Authorization`, `Cookie`, `x-api-key`) e parâmetros de URL (como `token`, `secret`, `password`) são sanitizados automaticamente antes de serem exportados.
 - **`amount` em unidade menor (inteiro).** Dinheiro nunca é float; evita erros de
   arredondamento.
 - **Erros de domínio agnósticos ao transporte.** O domínio lança `DomainError`s; o
@@ -253,17 +255,21 @@ docker-compose.yml
 
 ## Variáveis de ambiente
 
-| Variável                   | Descrição                                | Exemplo                        |
-| -------------------------- | ---------------------------------------- | ------------------------------ |
-| `PORT` / `HOST`            | porta/host do servidor                   | `3333` / `localhost`           |
-| `APP_KEY`                  | chave da aplicação (gerada pelo Adonis)  | —                              |
-| `DB_HOST` / `DB_PORT`      | conexão Postgres                         | `127.0.0.1` / `5432`           |
-| `DB_USER` / `DB_PASSWORD`  | credenciais Postgres                     | `root` / `root`                |
-| `DB_DATABASE`              | base de dados                            | `app`                          |
-| `PAYMENT_PROVIDER_URL`     | base URL do provedor externo             | `http://external.provider.com` |
-| `PAYMENT_PROVIDER_TIMEOUT` | timeout (ms) das chamadas ao provedor    | `5000`                         |
-| `PAYMENT_PROVIDER_RETRIES` | número máximo de retentativas no gateway | `3`                            |
-| `KAFKA_BOOTSTRAP_SERVERS`  | servidores do cluster Kafka              | `localhost:9092`               |
-| `KAFKA_TOPIC`              | tópico para eventos de pagamento         | `payment-status-changed`       |
+| Variável                      | Descrição                                | Exemplo                           |
+| ----------------------------- | ---------------------------------------- | --------------------------------- |
+| `PORT` / `HOST`               | porta/host do servidor                   | `3333` / `localhost`              |
+| `APP_KEY`                     | chave da aplicação (gerada pelo Adonis)  | —                                 |
+| `DB_HOST` / `DB_PORT`         | conexão Postgres                         | `127.0.0.1` / `5432`              |
+| `DB_USER` / `DB_PASSWORD`     | credenciais Postgres                     | `root` / `root`                   |
+| `DB_DATABASE`                 | base de dados                            | `app`                             |
+| `PAYMENT_PROVIDER_URL`        | base URL do provedor externo             | `http://external.provider.com`    |
+| `PAYMENT_PROVIDER_TIMEOUT`    | timeout (ms) das chamadas ao provedor    | `5000`                            |
+| `PAYMENT_PROVIDER_RETRIES`    | número máximo de retentativas no gateway | `3`                               |
+| `KAFKA_BOOTSTRAP_SERVERS`     | servidores do cluster Kafka              | `localhost:9092`                  |
+| `KAFKA_TOPIC`                 | tópico para eventos de pagamento         | `payment-status-changed`          |
+| `OTEL_ENABLED`                | habilita o rastreamento OpenTelemetry    | `false`                           |
+| `OTEL_SERVICE_NAME`           | nome do serviço na telemetria            | `payments-api`                    |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | endpoint do coletor de traces OTel       | `http://localhost:4318/v1/traces` |
+| `OTEL_EXPORTER`               | exportador (`otlp` ou `console`)         | `otlp`                            |
 
 Veja `.env.example` para o conjunto completo.

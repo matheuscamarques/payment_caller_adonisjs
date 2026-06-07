@@ -11,6 +11,7 @@
 |
 */
 
+import '../app/payments/infrastructure/telemetry/otel.js'
 import 'reflect-metadata'
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
 

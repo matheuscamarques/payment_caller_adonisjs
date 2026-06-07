@@ -44,4 +44,14 @@ export default await Env.create(new URL('../', import.meta.url), {
   KAFKA_CLIENT_ID: Env.schema.string.optional(),
   KAFKA_GROUP_ID: Env.schema.string.optional(),
   KAFKA_TOPIC: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for OpenTelemetry configuration
+  |----------------------------------------------------------
+  */
+  OTEL_ENABLED: Env.schema.boolean.optional(),
+  OTEL_SERVICE_NAME: Env.schema.string.optional(),
+  OTEL_EXPORTER_OTLP_ENDPOINT: Env.schema.string.optional(),
+  OTEL_EXPORTER: Env.schema.string.optional(),
 })
