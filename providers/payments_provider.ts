@@ -31,7 +31,18 @@ export default class PaymentsProvider {
     this.app.container.singleton(PaymentProvider, async () => {
       const config = (await import('#config/provider')).default
       const http = axios.create({ baseURL: config.baseUrl, timeout: config.timeout })
-      return new HttpPaymentProvider(http)
+      const rawProvider = new HttpPaymentProvider(http)
+
+      const { ResilientPaymentProvider } =
+        await import('#payments/infrastructure/provider/resilient-payment-provider')
+      return new ResilientPaymentProvider(
+        rawProvider,
+        config.retries,
+        config.retryDelay,
+        2, // backoffFactor
+        config.circuitFailures,
+        config.circuitCooldown
+      )
     })
 
     // --- Write side (CQRS) -------------------------------------------------

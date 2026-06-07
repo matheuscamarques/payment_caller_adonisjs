@@ -36,4 +36,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   PAYMENT_PROVIDER_URL: Env.schema.string.optional(),
   PAYMENT_PROVIDER_TIMEOUT: Env.schema.number.optional(),
+  PAYMENT_PROVIDER_RETRIES: Env.schema.number.optional(),
+  PAYMENT_PROVIDER_RETRY_DELAY: Env.schema.number.optional(),
+  PAYMENT_PROVIDER_CIRCUIT_FAILURES: Env.schema.number.optional(),
+  PAYMENT_PROVIDER_CIRCUIT_COOLDOWN: Env.schema.number.optional(),
 })
