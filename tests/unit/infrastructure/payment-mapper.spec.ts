@@ -16,6 +16,7 @@ test.group('PaymentMapper', () => {
       productId: PRODUCT_ID,
       status: PaymentStatus.pending(),
       providerTxId: 'tx_1',
+      webhookUrl: 'http://test.com/webhook',
     })
 
     assert.deepEqual(PaymentMapper.toPersistence(payment), {
@@ -26,6 +27,7 @@ test.group('PaymentMapper', () => {
       status: 'pending',
       productId: PRODUCT_ID,
       providerTxId: 'tx_1',
+      webhookUrl: 'http://test.com/webhook',
     })
   })
 
@@ -38,6 +40,7 @@ test.group('PaymentMapper', () => {
       status: 'processed',
       productId: PRODUCT_ID,
       providerTxId: null,
+      webhookUrl: null,
     })
 
     assert.equal(payment.paymentId, 'p2')
@@ -56,6 +59,7 @@ test.group('PaymentMapper', () => {
       productId: PRODUCT_ID,
       status: PaymentStatus.fromString('failed'),
       providerTxId: 'tx_3',
+      webhookUrl: null,
     })
 
     const roundTripped = PaymentMapper.toDomain(PaymentMapper.toPersistence(original))

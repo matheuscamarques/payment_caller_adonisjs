@@ -16,6 +16,7 @@ export interface PaymentRecord {
   status: string
   productId: string
   providerTxId: string | null
+  webhookUrl: string | null
 }
 
 /** Attributes written to the `payments` table (timestamps are DB-managed). */
@@ -32,6 +33,7 @@ export class PaymentMapper {
       status: payment.status.value,
       productId: payment.productId,
       providerTxId: payment.providerTxId,
+      webhookUrl: payment.webhookUrl,
     }
   }
 
@@ -43,6 +45,7 @@ export class PaymentMapper {
       productId: record.productId,
       status: PaymentStatus.fromString(record.status),
       providerTxId: record.providerTxId,
+      webhookUrl: record.webhookUrl,
     })
   }
 }

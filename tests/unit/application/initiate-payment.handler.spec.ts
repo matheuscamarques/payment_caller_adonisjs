@@ -4,6 +4,7 @@ import { InitiatePaymentCommand } from '#payments/application/commands/initiate-
 import { ProviderUnavailableError } from '#payments/domain/errors/provider-unavailable.error'
 import { InvalidPaymentMethodError } from '#payments/domain/errors/invalid-payment-data.error'
 import { InMemoryPaymentRepository, FakePaymentProvider } from '#tests/helpers/payment_doubles'
+import { InMemoryPaymentEventBus } from '#payments/infrastructure/messaging/in-memory-payment-event-bus'
 
 const PRODUCT_ID = '87e9646a-8513-465d-b58d-6df44b9e4925'
 const validCommand = () => new InitiatePaymentCommand(3452, 'BRL', 'PAYPAL', PRODUCT_ID)
@@ -14,7 +15,8 @@ test.group('InitiatePaymentHandler', () => {
     const provider = new FakePaymentProvider({
       initiation: { providerTxId: 'tx_777', status: 'processed' },
     })
-    const handler = new InitiatePaymentHandler(repo, provider)
+    const events = new InMemoryPaymentEventBus()
+    const handler = new InitiatePaymentHandler(repo, provider, events)
 
     const result = await handler.execute(validCommand())
 
@@ -30,6 +32,7 @@ test.group('InitiatePaymentHandler', () => {
     const stored = await repo.findById(result.paymentId)
     assert.equal(stored?.status.value, 'pending')
     assert.equal(stored?.providerTxId, 'tx_777')
+    assert.lengthOf(events.publishedEvents, 0)
   })
 
   test('marks the payment failed and raises ProviderUnavailableError on provider error', async ({
@@ -37,7 +40,8 @@ test.group('InitiatePaymentHandler', () => {
   }) => {
     const repo = new InMemoryPaymentRepository()
     const provider = new FakePaymentProvider({ initiateError: new Error('connection reset') })
-    const handler = new InitiatePaymentHandler(repo, provider)
+    const events = new InMemoryPaymentEventBus()
+    const handler = new InitiatePaymentHandler(repo, provider, events)
 
     let raised: unknown
     try {
@@ -52,13 +56,16 @@ test.group('InitiatePaymentHandler', () => {
     assert.lengthOf(stored, 1)
     assert.equal(stored[0].status.value, 'failed')
     assert.equal(repo.saveCalls, 2) // pending, then failed
+    assert.lengthOf(events.publishedEvents, 1)
+    assert.equal(events.publishedEvents[0].status.value, 'failed')
   })
 
   test('re-throws a ProviderUnavailableError unchanged', async ({ assert }) => {
     const original = new ProviderUnavailableError('provider is down')
     const repo = new InMemoryPaymentRepository()
     const provider = new FakePaymentProvider({ initiateError: original })
-    const handler = new InitiatePaymentHandler(repo, provider)
+    const events = new InMemoryPaymentEventBus()
+    const handler = new InitiatePaymentHandler(repo, provider, events)
 
     let raised: unknown
     try {
@@ -75,7 +82,8 @@ test.group('InitiatePaymentHandler', () => {
   }) => {
     const repo = new InMemoryPaymentRepository()
     const provider = new FakePaymentProvider()
-    const handler = new InitiatePaymentHandler(repo, provider)
+    const events = new InMemoryPaymentEventBus()
+    const handler = new InitiatePaymentHandler(repo, provider, events)
 
     let raised: unknown
     try {

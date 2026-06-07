@@ -16,5 +16,6 @@ export const initiatePaymentValidator = vine.compile(
       .regex(/^[A-Za-z]{3}$/),
     method: vine.enum(PAYMENT_METHODS),
     product_id: vine.string().trim().uuid(),
+    webhook_url: vine.string().url().optional(),
   })
 )

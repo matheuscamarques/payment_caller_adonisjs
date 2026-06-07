@@ -2,6 +2,7 @@ import { QueryHandler } from '../../bus/query-bus.js'
 import { PaymentResult } from '../../dto/payment-result.js'
 import { PaymentRepository } from '../../../domain/ports/payment-repository.js'
 import { PaymentProvider } from '../../../domain/ports/payment-provider.js'
+import { PaymentEventBus } from '../../../domain/ports/payment-event-bus.js'
 import { PaymentNotFoundError } from '../../../domain/errors/payment-not-found.error.js'
 import { GetPaymentStatusQuery } from './get-payment-status.query.js'
 import { SingleFlight } from '../../bus/single-flight.js'
@@ -22,7 +23,8 @@ export class GetPaymentStatusHandler implements QueryHandler<GetPaymentStatusQue
 
   constructor(
     private readonly payments: PaymentRepository,
-    private readonly provider: PaymentProvider
+    private readonly provider: PaymentProvider,
+    private readonly events: PaymentEventBus
   ) {}
 
   async execute(query: GetPaymentStatusQuery): Promise<PaymentResult> {
@@ -33,9 +35,18 @@ export class GetPaymentStatusHandler implements QueryHandler<GetPaymentStatusQue
       }
 
       if (payment.needsProviderSync()) {
+        const oldStatus = payment.status.value
         const status = await this.provider.fetchStatus(payment.providerTxId!)
         payment.syncStatus(status)
-        await this.payments.save(payment)
+
+        if (payment.status.value !== oldStatus) {
+          await this.payments.save(payment)
+          try {
+            await this.events.publishStatusChanged(payment)
+          } catch (pubError) {
+            // Event publishing failure should not crash status retrieval.
+          }
+        }
       }
 
       return { paymentId: payment.paymentId, status: payment.status.value }

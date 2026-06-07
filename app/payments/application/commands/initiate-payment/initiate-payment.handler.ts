@@ -5,6 +5,7 @@ import { Money } from '../../../domain/value-objects/money.js'
 import { PaymentMethod } from '../../../domain/value-objects/payment-method.js'
 import { PaymentRepository } from '../../../domain/ports/payment-repository.js'
 import { PaymentProvider } from '../../../domain/ports/payment-provider.js'
+import { PaymentEventBus } from '../../../domain/ports/payment-event-bus.js'
 import { ProviderUnavailableError } from '../../../domain/errors/provider-unavailable.error.js'
 import { InitiatePaymentCommand } from './initiate-payment.command.js'
 
@@ -15,8 +16,8 @@ import { InitiatePaymentCommand } from './initiate-payment.command.js'
  *   2. Call the provider synchronously:
  *      - success → store the provider tx id; status stays `pending` (the status
  *        endpoint is the single place that reconciles the real state).
- *      - failure → mark the payment `failed`, persist, and surface a
- *        ProviderUnavailableError (translated to HTTP 502 at the edge).
+ *      - failure → mark the payment `failed`, persist, publish a status transition event,
+ *        and surface a ProviderUnavailableError (translated to HTTP 502 at the edge).
  */
 export class InitiatePaymentHandler implements CommandHandler<
   InitiatePaymentCommand,
@@ -24,7 +25,8 @@ export class InitiatePaymentHandler implements CommandHandler<
 > {
   constructor(
     private readonly payments: PaymentRepository,
-    private readonly provider: PaymentProvider
+    private readonly provider: PaymentProvider,
+    private readonly events: PaymentEventBus
   ) {}
 
   async execute(command: InitiatePaymentCommand): Promise<PaymentResult> {
@@ -32,6 +34,7 @@ export class InitiatePaymentHandler implements CommandHandler<
       money: Money.create(command.amount, command.currency),
       method: PaymentMethod.fromString(command.method),
       productId: command.productId,
+      webhookUrl: command.webhookUrl,
     })
 
     await this.payments.save(payment)
@@ -43,6 +46,12 @@ export class InitiatePaymentHandler implements CommandHandler<
     } catch (error) {
       payment.markAsFailed()
       await this.payments.save(payment)
+
+      try {
+        await this.events.publishStatusChanged(payment)
+      } catch (pubError) {
+        // Event publishing failure should not mask the original initiation failure.
+      }
 
       if (error instanceof ProviderUnavailableError) {
         throw error

@@ -13,7 +13,8 @@ export class InitiatePaymentCommand extends Command<PaymentResult> {
     readonly amount: number,
     readonly currency: string,
     readonly method: string,
-    readonly productId: string
+    readonly productId: string,
+    readonly webhookUrl?: string | null
   ) {
     super()
   }

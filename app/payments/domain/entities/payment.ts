@@ -7,6 +7,7 @@ interface InitiateProps {
   money: Money
   method: PaymentMethod
   productId: string
+  webhookUrl?: string | null
 }
 
 interface RestoreProps {
@@ -16,6 +17,7 @@ interface RestoreProps {
   productId: string
   status: PaymentStatus
   providerTxId: string | null
+  webhookUrl: string | null
 }
 
 /**
@@ -32,7 +34,8 @@ export class Payment {
     public readonly method: PaymentMethod,
     public readonly productId: string,
     private currentStatus: PaymentStatus,
-    private currentProviderTxId: string | null
+    private currentProviderTxId: string | null,
+    public readonly webhookUrl: string | null
   ) {}
 
   /**
@@ -47,7 +50,8 @@ export class Payment {
       props.method,
       props.productId,
       PaymentStatus.pending(),
-      null
+      null,
+      props.webhookUrl ?? null
     )
   }
 
@@ -59,7 +63,8 @@ export class Payment {
       props.method,
       props.productId,
       props.status,
-      props.providerTxId
+      props.providerTxId,
+      props.webhookUrl
     )
   }
 

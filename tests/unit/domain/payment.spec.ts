@@ -65,10 +65,23 @@ test.group('Payment', () => {
       productId: PRODUCT_ID,
       status: PaymentStatus.fromString('processed'),
       providerTxId: 'tx_abc',
+      webhookUrl: 'http://example.com/webhook',
     })
 
     assert.equal(payment.paymentId, 'b018b23b-9931-4438-b55f-782edb05b4c2')
     assert.equal(payment.status.value, 'processed')
     assert.equal(payment.providerTxId, 'tx_abc')
+    assert.equal(payment.webhookUrl, 'http://example.com/webhook')
+  })
+
+  test('can be initiated with a webhook URL', ({ assert }) => {
+    const payment = Payment.initiate({
+      money: Money.create(3452, 'BRL'),
+      method: PaymentMethod.fromString('PAYPAL'),
+      productId: PRODUCT_ID,
+      webhookUrl: 'http://example.com/webhook',
+    })
+
+    assert.equal(payment.webhookUrl, 'http://example.com/webhook')
   })
 })

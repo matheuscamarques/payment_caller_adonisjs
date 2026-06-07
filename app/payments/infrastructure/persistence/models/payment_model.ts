@@ -33,6 +33,9 @@ export default class PaymentModel extends BaseModel {
   @column()
   declare providerTxId: string | null
 
+  @column()
+  declare webhookUrl: string | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

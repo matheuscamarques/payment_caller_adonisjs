@@ -26,7 +26,8 @@ export default class PaymentsController {
         payload.amount,
         payload.currency,
         payload.method,
-        payload.product_id
+        payload.product_id,
+        payload.webhook_url
       )
     )
 

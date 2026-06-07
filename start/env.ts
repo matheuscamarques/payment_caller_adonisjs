@@ -40,4 +40,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   PAYMENT_PROVIDER_RETRY_DELAY: Env.schema.number.optional(),
   PAYMENT_PROVIDER_CIRCUIT_FAILURES: Env.schema.number.optional(),
   PAYMENT_PROVIDER_CIRCUIT_COOLDOWN: Env.schema.number.optional(),
+  KAFKA_BOOTSTRAP_SERVERS: Env.schema.string.optional(),
+  KAFKA_CLIENT_ID: Env.schema.string.optional(),
+  KAFKA_GROUP_ID: Env.schema.string.optional(),
+  KAFKA_TOPIC: Env.schema.string.optional(),
 })
