@@ -135,4 +135,16 @@ test.group('Payments API', (group) => {
     status.assertStatus(200)
     assert.equal(status.body().status, 'failed')
   })
+
+  test('GET /swagger.json returns the openapi specification', async ({ client }) => {
+    const response = await client.get('/swagger.json')
+    response.assertStatus(200)
+    response.assertBodyContains({ openapi: '3.0.3' })
+  })
+
+  test('GET /docs returns the Swagger UI html page', async ({ client }) => {
+    const response = await client.get('/docs')
+    response.assertStatus(200)
+    response.assertTextIncludes('<div id="swagger-ui"></div>')
+  })
 })
